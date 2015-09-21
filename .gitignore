@@ -1,0 +1,13 @@
+# Node.js
+bower_components
+node_modules
+npm-debug.log
+
+# Project
+
+redis.db/
+tmp/
+compiledAssets/
+databaseDump
+*.tmp
+tmp.*
