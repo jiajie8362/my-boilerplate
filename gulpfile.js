@@ -31,19 +31,20 @@ function rebundle() {
     });
 }
 
-
 bundler.on('update', rebundle);
 bundler.on('log', $.util.log);
 
 // HTML
+gulp.task('html-watch', ['html'], reload);
 gulp.task('html', function() {
   return gulp.src('client/*.html')
-      .pipe($.useref())
-      .pipe(gulp.dest('dist'))
-      .pipe($.size());
+    .pipe($.useref())
+    .pipe(gulp.dest('dist'))
+    .pipe($.size());
 });
 
 // Images
+gulp.task('images-watch', ['images'], reload);
 gulp.task('images', function() {
   return gulp.src('app/images/**/*')
     .pipe($.cache($.imagemin({
@@ -55,6 +56,8 @@ gulp.task('images', function() {
     .pipe($.size());
 });
 
+// stylus
+gulp.task('stylus-watch', ['stylus'], reload);
 gulp.task('stylus', function() {
   return gulp.src(['client/styles/**/*.styl'])
       .pipe($.stylus())
@@ -80,7 +83,7 @@ gulp.task('build', ['html', 'buildBundle', 'images'], function() {
 });
 
 // Watch
-gulp.task('watch', ['html', 'bundle'], function() {
+gulp.task('watch', ['scripts', 'html', 'bundle'], function() {
   browserSync({
     notify: false,
     logPrefix: 'BS',
@@ -88,10 +91,10 @@ gulp.task('watch', ['html', 'bundle'], function() {
     // Note: this uses an unsigned certificate which on first access
     // will present a certificate warning in the browser.
     // https: true,
-    server: ['dist', 'app']
+    server: ['dist']
   });
   // Watch .html files
-  gulp.watch('client/*.html', ['html']);
+  gulp.watch('client/*.html', ['html-watch']);
 });
 
 gulp.task('clean', function(cb) {
@@ -139,49 +142,6 @@ gulp.task('start', ['watch'], function() {
   };
 
   nodemon(apiConfig);
-});
-
-gulp.task('nodemon', function(cb) {
-  var called = false;
-  return nodemon({
-    // nodemon our expressjs server
-    script: 'server/app.js',
-
-    // watch core server file(s) that require server restart on change
-    watch: ['server/app.js']
-  })
-  .on('start', function onStart() {
-      // ensure start only got called once
-    if (!called) { cb(); }
-    called = true;
-  })
-  .on('restart', function onRestart() {
-    // reload connected browsers after a slight delay
-    setTimeout(function() {
-      browserSync.reload({
-        stream: false //
-      });
-    }, 500);
-  });
-});
-
-gulp.task('b', ['nodemon'], function() {
-  // for more browser-sync config options: http://www.browsersync.io/docs/options/
-  browserSync.init({
-
-    // watch the following files; changes will be injected (css & images) or cause browser to refresh
-    files: ['public/**/*.*'],
-
-    // informs browser-sync to proxy our expressjs app which would run at the following location
-    proxy: 'http://localhost:3000',
-
-    // informs browser-sync to use the following port for the proxied app
-    // notice that the default port is 3000, which would clash with our expressjs
-    port: 4000,
-
-    // open the proxied app in chrome
-    browser: ['google-chrome']
-  });
 });
 
 // Default task
