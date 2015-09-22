@@ -9,6 +9,7 @@ const destFolder = './dist/scripts';
 const destFileName = 'app.js';
 const reload = browserSync.reload;
 const del = require('del');
+const nodemon = require('gulp-nodemon');
 
 const bundler = watchify(browserify({
   entries: [sourceFile],
@@ -94,8 +95,9 @@ gulp.task('watch', ['html', 'bundle'], function() {
 });
 
 gulp.task('clean', function(cb) {
-  //$.cache.clearAll();
-  //cb(del.sync(['dist/styles', 'dist/scripts', 'dist/images']));
+  $.cache.clearAll();
+  del.sync(['dist/*']);
+  cb();
 });
 
 // Bundle
@@ -121,6 +123,65 @@ gulp.task('bower', function() {
     base: 'app/bower_components'
   })
   .pipe(gulp.dest('dist/bower_components/'));
+});
+
+gulp.task('start', ['watch'], function() {
+  apiConfig = {
+    verbose: false,
+    restartable: 'rs',
+    ext: 'js,coffee,es',
+    script: 'server/app',
+    ignore: ['client', 'node_modules/', 'gulpfile.*'],
+    env: {
+      env: process.env.NODE_ENV || 'development',
+      DEBUG: process.env.DEBUG || 'api*'
+    }
+  };
+
+  nodemon(apiConfig);
+});
+
+gulp.task('nodemon', function(cb) {
+  var called = false;
+  return nodemon({
+    // nodemon our expressjs server
+    script: 'server/app.js',
+
+    // watch core server file(s) that require server restart on change
+    watch: ['server/app.js']
+  })
+  .on('start', function onStart() {
+      // ensure start only got called once
+    if (!called) { cb(); }
+    called = true;
+  })
+  .on('restart', function onRestart() {
+    // reload connected browsers after a slight delay
+    setTimeout(function() {
+      browserSync.reload({
+        stream: false //
+      });
+    }, 500);
+  });
+});
+
+gulp.task('b', ['nodemon'], function() {
+  // for more browser-sync config options: http://www.browsersync.io/docs/options/
+  browserSync.init({
+
+    // watch the following files; changes will be injected (css & images) or cause browser to refresh
+    files: ['public/**/*.*'],
+
+    // informs browser-sync to proxy our expressjs app which would run at the following location
+    proxy: 'http://localhost:3000',
+
+    // informs browser-sync to use the following port for the proxied app
+    // notice that the default port is 3000, which would clash with our expressjs
+    port: 4000,
+
+    // open the proxied app in chrome
+    browser: ['google-chrome']
+  });
 });
 
 // Default task
