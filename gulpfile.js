@@ -42,10 +42,36 @@ gulp.task('html', function() {
       .pipe($.size());
 });
 
+// Images
+gulp.task('images', function() {
+  return gulp.src('app/images/**/*')
+    .pipe($.cache($.imagemin({
+      optimizationLevel: 3,
+      progressive: true,
+      interlaced: true
+    })))
+    .pipe(gulp.dest('dist/images'))
+    .pipe($.size());
+});
+
+gulp.task('stylus', function() {
+  return gulp.src(['client/styles/**/*.styl'])
+      .pipe($.stylus())
+      .pipe($.autoprefixer('last 1 version'))
+      .pipe(gulp.dest('dist/styles'))
+      .pipe($.size());
+});
+
 gulp.task('scripts', rebundle);
 
+gulp.task('buildScripts', function() {
+  return browserify(sourceFile)
+      .bundle()
+      .pipe(source(destFileName))
+      .pipe(gulp.dest('dist/scripts'));
+});
 // Build
-gulp.task('build', ['html'], function() {
+gulp.task('build', ['html', 'buildBundle', 'images'], function() {
   gulp.src('dist/scripts/app.js')
       .pipe($.uglify())
       .pipe($.stripDebug())
@@ -54,7 +80,6 @@ gulp.task('build', ['html'], function() {
 
 // Watch
 gulp.task('watch', ['html', 'bundle'], function() {
-
   browserSync({
     notify: false,
     logPrefix: 'BS',
@@ -65,12 +90,37 @@ gulp.task('watch', ['html', 'bundle'], function() {
     server: ['dist', 'app']
   });
   // Watch .html files
-  gulp.watch('app/*.html', ['html']);
+  gulp.watch('client/*.html', ['html']);
 });
 
 gulp.task('clean', function(cb) {
   //$.cache.clearAll();
   //cb(del.sync(['dist/styles', 'dist/scripts', 'dist/images']));
+});
+
+// Bundle
+gulp.task('bundle', ['scripts', 'bower'], function() {
+  return gulp.src('./client/*.html')
+      .pipe($.useref.assets())
+      .pipe($.useref.restore())
+      .pipe($.useref())
+      .pipe(gulp.dest('dist'));
+});
+
+gulp.task('buildBundle', ['buildScripts', 'bower'], function() {
+  return gulp.src('./client/*.html')
+      .pipe($.useref.assets())
+      .pipe($.useref.restore())
+      .pipe($.useref())
+      .pipe(gulp.dest('dist'));
+});
+
+// Bower helper
+gulp.task('bower', function() {
+  gulp.src('app/bower_components/**/*.js', {
+    base: 'app/bower_components'
+  })
+  .pipe(gulp.dest('dist/bower_components/'));
 });
 
 // Default task
